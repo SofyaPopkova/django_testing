@@ -30,33 +30,30 @@ def test_getting_courses_list(api_client, course_factory):
 
 
 @pytest.mark.django_db
-def test_sorting_courses_by_id(api_client, course_factory):
+def test_filtering_courses_by_id(api_client, course_factory):
     url = reverse('courses-list')
-    course_1 = course_factory()
-    course_2 = course_factory()
-    course_3 = course_factory()
-    response = api_client.get(url)
-    sorted_coursers = {course_1.id, course_2.id, course_3.id}
+    course = course_factory(_quantity=3)
+    response = api_client.get(url, {'id': course[0].id})
     assert response.status_code == HTTP_200_OK
 
     response_json = response.json()
-    response_ids = {r["id"] for r in response_json}
-    assert response_ids == sorted_coursers
+    assert len(response_json) == 1
 
 
 @pytest.mark.django_db
-def test_sorting_courses_by_name(api_client, course_factory):
+def test_filtering_courses_by_name(api_client, course_factory):
     url = reverse('courses-list')
-    course_1 = course_factory(name='Python')
-    course_2 = course_factory(name='Go')
-    course_3 = course_factory(name='Javascript')
-    response = api_client.get(url)
-    sorted_courses = {course_3.name, course_2.name, course_1.name}
+    course = Course.objects.bulk_create([
+        Course(name='First course'),
+        Course(name='Second course'),
+    ])
+    response = api_client.get(url, {'name': 'First course'})
     assert response.status_code == HTTP_200_OK
 
     response_json = response.json()
-    response_ids = {r["name"] for r in response_json}
-    assert response_ids == sorted_courses
+    assert len(response_json) == 1
+    response_course = response_json[0]
+    assert response_course['name'] == course[1].name
 
 
 @pytest.mark.django_db
